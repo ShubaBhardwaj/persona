@@ -253,9 +253,12 @@ export default function ChatPage() {
                     key={instructor.id}
                     onClick={() => setSelectedInstructorId(instructor.id)}
                     className={cn(
-                      "flex items-center gap-3 p-2 rounded-xl transition-all duration-200 text-left w-full cursor-pointer",
+                      "flex items-center transition-all duration-200 cursor-pointer",
+                      isCollapsed 
+                        ? "justify-center size-12 rounded-xl mx-auto" 
+                        : "gap-3 p-2 rounded-xl text-left w-full",
                       isSelected 
-                        ? "bg-primary/10 text-primary font-semibold border-l-2 border-primary" 
+                        ? "bg-primary/10 text-primary font-semibold" + (!isCollapsed ? " border-l-2 border-primary" : "") 
                         : "text-foreground/80 hover:bg-muted"
                     )}
                   >
@@ -277,8 +280,10 @@ export default function ChatPage() {
             <button
               onClick={handleNewChat}
               className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl border border-border hover:border-primary/30 bg-card hover:bg-muted text-foreground/85 transition-all text-xs font-semibold cursor-pointer w-full justify-center shadow-xs",
-                isCollapsed ? "px-0" : ""
+                "flex items-center transition-all cursor-pointer font-semibold",
+                isCollapsed
+                  ? "size-10 rounded-xl mx-auto justify-center bg-card border border-border hover:border-primary/30 hover:bg-muted"
+                  : "gap-2.5 p-2.5 rounded-xl border border-border hover:border-primary/30 bg-card hover:bg-muted text-foreground/85 text-xs w-full justify-center shadow-xs"
               )}
               title="Start a new chat session"
             >
@@ -305,8 +310,10 @@ export default function ChatPage() {
                     })
                   }}
                   className={cn(
-                    "flex items-center gap-3 p-2 rounded-xl text-foreground/80 hover:bg-muted text-left transition-all cursor-pointer w-full",
-                    isCollapsed ? "justify-center" : ""
+                    "flex items-center transition-all cursor-pointer",
+                    isCollapsed 
+                      ? "size-10 rounded-xl mx-auto justify-center hover:bg-muted text-foreground/80" 
+                      : "gap-3 p-2 rounded-xl text-foreground/80 hover:bg-muted text-left w-full"
                   )}
                 >
                   <MessageSquare className="size-4 text-muted-foreground shrink-0" />
@@ -326,7 +333,22 @@ export default function ChatPage() {
             "flex items-center gap-2.5 truncate w-full transition-all",
             !isCollapsed && "border border-border/40 rounded-full p-1.5 pr-3 bg-muted/10 hover:bg-muted/20 cursor-pointer"
           )}>
-            <UserButton />
+            <UserButton 
+              appearance={{
+                elements: {
+                  avatarBox: "size-8 shrink-0",
+                  userButtonPopoverCard: "bg-[#FAF7F2] dark:bg-[#1A1816] border border-border/80 shadow-2xl rounded-2xl text-foreground font-sans overflow-hidden",
+                  userButtonPopoverFooter: "hidden", // Hides the Clerk branding and development footer
+                  userButtonPopoverActionButton: "hover:bg-muted/60 text-foreground/85 hover:text-foreground transition-colors py-2 px-3 rounded-xl text-xs flex gap-2.5 items-center cursor-pointer",
+                  userButtonPopoverActionButtonText: "text-xs font-semibold",
+                  userButtonPopoverActionButtonIcon: "text-muted-foreground size-4",
+                  userMenuUserArea: "border-b border-border/50 pb-3 mb-2 px-3 pt-1 flex gap-3 items-center",
+                  userMenuUserAreaPersonalIdentifier: "text-foreground font-bold text-xs truncate leading-none",
+                  userMenuUserAreaSecondaryIdentifier: "text-muted-foreground text-[10px] truncate leading-none mt-1",
+                  userButtonPopoverMain: "p-3",
+                }
+              }}
+            />
             {!isCollapsed && isLoaded && (
               <div className="flex flex-col text-left truncate leading-tight">
                 <span className="text-xs font-semibold truncate text-foreground">
