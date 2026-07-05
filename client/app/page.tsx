@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { useUser, SignInButton, SignUpButton } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
 import { toast } from "sonner"
 import { 
   Sparkles, 
@@ -80,6 +81,7 @@ interface Message {
 
 export default function HomePage() {
   const { isLoaded, isSignedIn, user } = useUser()
+  const router = useRouter()
   const [selectedInstructorId, setSelectedInstructorId] = useState<string>('hitesh')
   const [inputValue, setInputValue] = useState<string>('')
   const [isTyping, setIsTyping] = useState<boolean>(false)
@@ -98,10 +100,25 @@ export default function HomePage() {
   const currentInstructor = INSTRUCTORS.find(inst => inst.id === selectedInstructorId) || INSTRUCTORS[0]
   const currentMessages = chatHistory[selectedInstructorId] || []
 
+  // Redirect signed-in users away from home page to /chat
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.push('/chat')
+    }
+  }, [isLoaded, isSignedIn, router])
+
   // Auto scroll to bottom of chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [currentMessages, isTyping])
+
+  if (isLoaded && isSignedIn) {
+    return (
+      <div className="flex-1 w-full flex items-center justify-center bg-[#FAF7F2] dark:bg-[#1A1816] h-screen">
+        <Loader2 className="size-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   // Get Reply based on keywords
   const getAIReply = (instructorId: string, text: string): string => {
@@ -313,16 +330,6 @@ export default function HomePage() {
               </div>
               <p className="text-xs text-muted-foreground max-w-xs">
                 Unlock full custom chats and persistent logs.
-              </p>
-            </div>
-          ) : isLoaded && isSignedIn ? (
-            <div className="w-full flex flex-col items-center space-y-2 p-3 bg-card/40 border border-border/60 rounded-3xl backdrop-blur-xs">
-              <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-full text-xs font-semibold">
-                <CheckCircle2 className="size-3.5" />
-                <span>Authenticated Session Active</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Logged in as <span className="font-semibold text-foreground">{user?.fullName || user?.username}</span>.
               </p>
             </div>
           ) : (

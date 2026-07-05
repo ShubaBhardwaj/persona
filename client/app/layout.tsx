@@ -34,11 +34,6 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
               <ClerkProvider>
-          <Show when="signed-in">
-            <header className="flex justify-end items-center p-4 gap-4 h-16">
-              <UserButton />
-            </header>
-          </Show>
           {children}
           <Toaster />
         </ClerkProvider>
