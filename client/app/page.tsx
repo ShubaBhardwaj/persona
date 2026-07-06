@@ -24,7 +24,8 @@ import {
   Laptop,
   CheckCircle2,
   ExternalLink,
-  Loader2
+  Loader2,
+  ChevronLeft
 } from 'lucide-react'
 
 // Structure for the instructors
@@ -85,6 +86,7 @@ export default function HomePage() {
   const [selectedInstructorId, setSelectedInstructorId] = useState<string>('hitesh')
   const [inputValue, setInputValue] = useState<string>('')
   const [isTyping, setIsTyping] = useState<boolean>(false)
+  const [showDemo, setShowDemo] = useState<boolean>(false)
   
   // Maintain independent chat history for each instructor
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({
@@ -97,6 +99,7 @@ export default function HomePage() {
   })
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const demoTerminalRef = useRef<HTMLDivElement>(null)
   const currentInstructor = INSTRUCTORS.find(inst => inst.id === selectedInstructorId) || INSTRUCTORS[0]
   const currentMessages = chatHistory[selectedInstructorId] || []
 
@@ -111,6 +114,26 @@ export default function HomePage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [currentMessages, isTyping])
+
+  // Smooth scroll page down to the demo terminal when it opens
+  useEffect(() => {
+    if (showDemo) {
+      const timer = setTimeout(() => {
+        demoTerminalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [showDemo])
+
+  // Delay the initial chat scroll to bottom slightly to coordinate with the card mount/slide-up transition
+  useEffect(() => {
+    if (showDemo) {
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 450)
+      return () => clearTimeout(timer)
+    }
+  }, [showDemo])
 
   if (isLoaded && isSignedIn) {
     return (
@@ -294,9 +317,16 @@ export default function HomePage() {
 
                     <div className="w-full pt-2 flex items-center justify-between text-[11px] text-muted-foreground border-t border-border/50">
                       <span>{instructor.stats}</span>
-                      <span className="flex items-center gap-1 font-semibold text-primary">
-                        Demo Active <ArrowRight className="size-3" />
-                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedInstructorId(instructor.id)
+                          setShowDemo(true)
+                        }}
+                        className="flex items-center gap-1 font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer bg-transparent border-none p-0 outline-none"
+                      >
+                        Try Demo <ArrowRight className="size-3" />
+                      </button>
                     </div>
 
                   </CardContent>
@@ -322,7 +352,7 @@ export default function HomePage() {
                 
                 <SignUpButton mode="modal">
                   <Button 
-                    className="rounded-full px-8 py-5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition-all duration-300 w-32 cursor-pointer shadow-md shadow-primary/20"
+                    className="rounded-full px-8 py-5 bg-primary hover:bg-primary/95 text-primary-foreground text-sm font-semibold transition-all duration-300 w-32 cursor-pointer shadow-md shadow-primary/20"
                   >
                     Sign Up
                   </Button>
@@ -340,137 +370,151 @@ export default function HomePage() {
         </div>
 
         {/* Demo Chat Terminal below cards & buttons */}
-        <div className="w-full flex flex-col h-[520px] rounded-[28px] border border-border/80 bg-card/75 backdrop-blur-md shadow-xl overflow-hidden">
-          
-          {/* Chat Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border/80 bg-background/50">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Avatar className="size-10 border border-primary/20">
-                  <AvatarImage src={currentInstructor.avatar} alt={currentInstructor.name} />
-                  <AvatarFallback>{currentInstructor.name[0]}</AvatarFallback>
-                </Avatar>
-                <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
-              </div>
-              
-              <div>
-                <h4 className="font-heading font-bold text-sm text-foreground">
-                  {currentInstructor.name} AI
-                </h4>
-                <p className="text-[10px] text-emerald-500 font-semibold flex items-center gap-1">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Online Assistant
-                </p>
-              </div>
-            </div>
+        {showDemo && (
+          <div 
+            ref={demoTerminalRef}
+            className="w-full flex flex-col h-[520px] rounded-[28px] border border-border/80 bg-card/75 backdrop-blur-md shadow-xl overflow-hidden animate-slide-up"
+          >
             
-            <div className="flex items-center gap-1.5">
-              <Badge variant="outline" className="text-[10px] border-primary/20 text-primary font-mono bg-primary/5 px-2 py-0.5 rounded-md">
-                {currentInstructor.id.toUpperCase()}-GPT v1.0
-              </Badge>
-            </div>
-          </div>
-
-          {/* Message Area */}
-          <ScrollArea className="flex-1 p-5 bg-gradient-to-b from-transparent to-background/20">
-            <div className="flex flex-col gap-4">
-              
-              {/* Informative Note */}
-              <div className="self-center w-full max-w-sm text-center p-3 rounded-2xl bg-secondary/30 border border-border/50 text-[11px] text-muted-foreground leading-relaxed my-2">
-                ⚡ This is an interactive demo of {currentInstructor.name}'s AI character. Try the quick prompts below to see instant responses.
-              </div>
-
-              {currentMessages.map((msg) => {
-                const isUser = msg.sender === 'user'
-                return (
-                  <div
-                    key={msg.id}
-                    className={`flex flex-col max-w-[85%] ${isUser ? 'self-end' : 'self-start'}`}
-                  >
-                    <div
-                      className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-xs leading-relaxed ${
-                        isUser
-                          ? 'bg-primary text-primary-foreground rounded-tr-xs'
-                          : 'bg-card text-foreground rounded-tl-xs border border-border/80'
-                      }`}
-                    >
-                      {msg.text}
-                    </div>
-                    <span className="text-[9px] text-muted-foreground/60 mt-1 px-1 self-end">
-                      {isUser ? 'You' : currentInstructor.name.split(' ')[0]}
-                    </span>
-                  </div>
-                )
-              })}
-
-              {/* Typing Animation */}
-              {isTyping && (
-                <div className="flex flex-col max-w-[85%] self-start">
-                  <div className="px-4 py-3 rounded-2xl rounded-tl-xs bg-card border border-border/80 shadow-xs flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
-
-          {/* Quick Prompts Panel */}
-          <div className="px-5 py-3 bg-background/30 border-t border-border/50 flex flex-col gap-1.5">
-            <span className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
-              <Sparkles className="size-3 text-primary animate-pulse" />
-              Suggested Prompts (Click to ask):
-            </span>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {currentInstructor.prompts.map((prompt, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSendMessage(prompt.q)}
-                  disabled={isTyping}
-                  className="text-[11px] text-foreground bg-card hover:bg-primary hover:text-primary-foreground px-3 py-1.5 rounded-full border border-border hover:border-transparent transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+            {/* Chat Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border/80 bg-background/50">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowDemo(false)}
+                  className="rounded-full h-8 w-8 hover:bg-muted cursor-pointer shrink-0 flex items-center justify-center"
+                  title="Back to Instructors"
                 >
-                  {prompt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Text Input Panel */}
-          <form onSubmit={handleCustomSubmit} className="p-4 bg-background border-t border-border/80 flex items-center gap-2">
-            <div className="relative flex-1">
-              <Input
-                type="text"
-                placeholder={
-                  isSignedIn 
-                    ? `Ask ${currentInstructor.name.split(' ')[0]} anything...` 
-                    : `Sign in to type, or click the quick prompts above...`
-                }
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                disabled={isTyping}
-                className="pr-10 rounded-full border-border bg-secondary/40 py-5.5 focus-visible:bg-background transition-all"
-              />
-              {!isSignedIn && (
-                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none">
-                  <Lock className="size-4" />
+                  <ChevronLeft className="size-4 text-muted-foreground" />
+                </Button>
+                <div className="relative">
+                  <Avatar className="size-10 border border-primary/20">
+                    <AvatarImage src={currentInstructor.avatar} alt={currentInstructor.name} />
+                    <AvatarFallback>{currentInstructor.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
                 </div>
-              )}
+                
+                <div>
+                  <h4 className="font-heading font-bold text-sm text-foreground">
+                    {currentInstructor.name} AI
+                  </h4>
+                  <p className="text-[10px] text-emerald-500 font-semibold flex items-center gap-1">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Online Assistant
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-1.5">
+                <Badge variant="outline" className="text-[10px] border-primary/20 text-primary font-mono bg-primary/5 px-2 py-0.5 rounded-md">
+                  {currentInstructor.id.toUpperCase()}-GPT v1.0
+                </Badge>
+              </div>
             </div>
-            
-            <Button
-              type="submit"
-              size="icon"
-              disabled={isTyping || !inputValue.trim()}
-              className="rounded-full bg-primary hover:bg-primary/95 text-primary-foreground size-10 shrink-0 cursor-pointer shadow-md shadow-primary/10"
-            >
-              <Send className="size-4" />
-            </Button>
-          </form>
 
-        </div>
+            {/* Message Area */}
+            <ScrollArea className="flex-1 p-5 bg-gradient-to-b from-transparent to-background/20">
+              <div className="flex flex-col gap-4">
+                
+                {/* Informative Note */}
+                <div className="self-center w-full max-w-sm text-center p-3 rounded-2xl bg-secondary/30 border border-border/50 text-[11px] text-muted-foreground leading-relaxed my-2">
+                  ⚡ This is an interactive demo of {currentInstructor.name}'s AI character. Try the quick prompts below to see instant responses.
+                </div>
+
+                {currentMessages.map((msg) => {
+                  const isUser = msg.sender === 'user'
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex flex-col max-w-[85%] ${isUser ? 'self-end' : 'self-start'}`}
+                    >
+                      <div
+                        className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-xs leading-relaxed ${
+                          isUser
+                            ? 'bg-primary text-primary-foreground rounded-tr-xs'
+                            : 'bg-card text-foreground rounded-tl-xs border border-border/80'
+                        }`}
+                      >
+                        {msg.text}
+                      </div>
+                      <span className="text-[9px] text-muted-foreground/60 mt-1 px-1 self-end">
+                        {isUser ? 'You' : currentInstructor.name.split(' ')[0]}
+                      </span>
+                    </div>
+                  )
+                })}
+
+                {/* Typing Animation */}
+                {isTyping && (
+                  <div className="flex flex-col max-w-[85%] self-start">
+                    <div className="px-4 py-3 rounded-2xl rounded-tl-xs bg-card border border-border/80 shadow-xs flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+
+            {/* Quick Prompts Panel */}
+            <div className="px-5 py-3 bg-background/30 border-t border-border/50 flex flex-col gap-1.5">
+              <span className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
+                <Sparkles className="size-3 text-primary animate-pulse" />
+                Suggested Prompts (Click to ask):
+              </span>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {currentInstructor.prompts.map((prompt, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSendMessage(prompt.q)}
+                    disabled={isTyping}
+                    className="text-[11px] text-foreground bg-card hover:bg-primary hover:text-primary-foreground px-3 py-1.5 rounded-full border border-border hover:border-transparent transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    {prompt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Text Input Panel */}
+            <form onSubmit={handleCustomSubmit} className="p-4 bg-background border-t border-border/80 flex items-center gap-2">
+              <div className="relative flex-1">
+                <Input
+                  type="text"
+                  placeholder={
+                    isSignedIn 
+                      ? `Ask ${currentInstructor.name.split(' ')[0]} anything...` 
+                      : `Sign in to type, or click the quick prompts above...`
+                  }
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  disabled={isTyping}
+                  className="pr-10 rounded-full border-border bg-secondary/40 py-5.5 focus-visible:bg-background transition-all"
+                />
+                {!isSignedIn && (
+                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none">
+                    <Lock className="size-4" />
+                  </div>
+                )}
+              </div>
+              
+              <Button
+                type="submit"
+                size="icon"
+                disabled={isTyping || !inputValue.trim()}
+                className="rounded-full bg-primary hover:bg-primary/95 text-primary-foreground size-10 shrink-0 cursor-pointer shadow-md shadow-primary/10"
+              >
+                <Send className="size-4" />
+              </Button>
+            </form>
+
+          </div>
+        )}
 
       </div>
 
