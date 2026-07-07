@@ -1,17 +1,17 @@
 import type { StreamChat, Channel, User } from "stream-chat";
 
 export interface AIAgent {
-  chatClient: StreamChat;
+  user?: User;
   channel: Channel;
-  user: User;
+  chatClient: StreamChat;
+  getLastInteraction: () => number;
   init: () => Promise<void>;
-  getLastInteraction: () => Number;
   dispose: () => Promise<void>;
 }
 
-export interface AgentPlatform {
-  OPENAI: "openai";
-  WRITING_ASSISTANT: "writing_assistant";
+export enum AgentPlatform {
+  OPENAI = "openai",
+  WRITING_ASSISTANT = "writing_assistant"
 }
 
 export interface WritingMessage {
