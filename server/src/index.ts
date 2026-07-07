@@ -9,6 +9,8 @@ app.get('/', (req, res) => {
   return res.json({ status: 'Al Good!' });
 });
 
-app.listen(8000, () =>
-  console.log(`Server started on PORT:${8000}`)
+const PORT = process.env.PORT || 8000
+
+app.listen(PORT, () =>
+  console.log(`Server started on PORT:${PORT} \n \nhttp://localhost:${PORT}`)
 );
