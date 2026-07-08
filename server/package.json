@@ -17,10 +17,13 @@
   "license": "ISC",
   "packageManager": "pnpm@11.9.0",
   "dependencies": {
+    "@clerk/backend": "^3.11.0",
+    "@clerk/express": "^2.1.36",
     "axios": "^1.18.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^4.22.2",
+    "mongoose": "^9.7.4",
     "openai": "^6.45.0",
     "stream-chat": "^8.60.0"
   },

@@ -4,10 +4,15 @@ import express from "express";
 import { createAgent } from "./agents/createAgent";
 import { AgentPlatform, AIAgent } from "./agents/types";
 import { apiKey, serverClient } from "./serverClient";
+import DBConnect from "./config/db";
+import authRouter from "./routes/auth.routes";
 
 const app = express();
 app.use(express.json());
 app.use(cors({ origin: "*" }));
+
+// Auth routes — POST /auth/sync (protected by Clerk JWT middleware)
+app.use("/auth", authRouter);
 
 // Map to store the AI Agent instances
 // [user_id string]: AI Agent
@@ -181,7 +186,16 @@ async function disposeAiAgent(aiAgent: AIAgent) {
 }
 
 // Start the Express server
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
+const PORT = process.env.PORT || 3000
+const start = async function () {
+    // DB connection
+    await DBConnect()
+    app.listen(PORT, ()=>{
+        console.log(`Server is running on http://localhost:${PORT}`)
+    })
+}
+
+start().catch((err)=>{
+    console.error("Failed to start server", err)
+    process.exit(1)
+})
