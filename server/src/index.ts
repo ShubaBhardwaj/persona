@@ -3,9 +3,10 @@ import "dotenv/config";
 import express from "express";
 import { createAgent } from "./agents/createAgent";
 import { AgentPlatform, AIAgent } from "./agents/types";
-import { apiKey, serverClient } from "./serverClient";
+import { apiKey, serverClient } from "./config/serverClient";
 import DBConnect from "./config/db";
 import authRouter from "./routes/auth.routes";
+import streamRouter from "./routes/stream.routes";
 
 const app = express();
 app.use(express.json());
@@ -14,13 +15,16 @@ app.use(cors({ origin: "*" }));
 // Auth routes — POST /auth/sync (protected by Clerk JWT middleware)
 app.use("/auth", authRouter);
 
+// Stream Chat routes — /stream/token, /stream/channel (all protected by Clerk JWT middleware)
+app.use("/stream", streamRouter);
+
 // Map to store the AI Agent instances
 // [user_id string]: AI Agent
 const aiAgentCache = new Map<string, AIAgent>();
 const pendingAiAgents = new Set<string>();
 
 // TODO: temporary set to 8 hours, should be cleaned up at some point
-const inactivityThreshold : number = 480 * 60 * 1000;
+const inactivityThreshold: number = 480 * 60 * 1000;
 // Periodically check for inactive AI agents and dispose of them
 setInterval(async () => {
   const now = Date.now();
@@ -74,7 +78,7 @@ app.post("/start-ai-agent", async (req, res) => {
         user_id,
         AgentPlatform.OPENAI,
         channel_type,
-        channel_id
+        channel_id,
       );
 
       await agent.init();
@@ -134,7 +138,7 @@ app.get("/agent-status", (req, res) => {
   }
   const user_id = `ai-bot-${channel_id.replace(/[!]/g, "")}`;
   console.log(
-    `[API] /agent-status called for channel: ${channel_id} (user: ${user_id})`
+    `[API] /agent-status called for channel: ${channel_id} (user: ${user_id})`,
   );
 
   if (aiAgentCache.has(user_id)) {
@@ -186,16 +190,16 @@ async function disposeAiAgent(aiAgent: AIAgent) {
 }
 
 // Start the Express server
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 3000;
 const start = async function () {
-    // DB connection
-    await DBConnect()
-    app.listen(PORT, ()=>{
-        console.log(`Server is running on http://localhost:${PORT}`)
-    })
-}
+  // DB connection
+  await DBConnect();
+  app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
+};
 
-start().catch((err)=>{
-    console.error("Failed to start server", err)
-    process.exit(1)
-})
+start().catch((err) => {
+  console.error("Failed to start server", err);
+  process.exit(1);
+});

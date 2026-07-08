@@ -1,5 +1,5 @@
 import { StreamChat } from "stream-chat";
-import { apiKey, serverClient } from "../serverClient";
+import { apiKey, serverClient } from "../config/serverClient";
 import { OpenAIAgent } from "./openai/openAIAgent";
 import { AgentPlatform, AIAgent } from "./types";
 
