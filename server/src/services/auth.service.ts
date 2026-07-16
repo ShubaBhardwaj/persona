@@ -2,6 +2,8 @@ import { clerkClient } from "../config/clerk";
 import UserModel from "../models/User";
 import SubscriptionModel from "../models/Subscription";
 import UsageModel from "../models/Usage";
+import streamService from "./stream.service";
+import mongoose from "mongoose";
 
 /**
  * Shape of the data returned by syncUser.
@@ -113,29 +115,93 @@ class AuthService {
     email: string;
     username: string;
     imageUrl: string;
-  }): Promise<SyncUserResult> {
-    // Step A: Persist the base user (subscriptionId/usageId are null until linked).
-    const newUser = await UserModel.create({
-      clerkId: clerkUser.clerkId,
-      email: clerkUser.email,
-      username: clerkUser.username,
-      imageUrl: clerkUser.imageUrl,
-    });
+  }): Promise<SyncUserResult & { streamToken: string }> {
+    const session = await mongoose.startSession();
 
-    // Step B: Create the default subscription for this user.
-    const subscription = await this.createDefaultSubscription(newUser._id);
+    try {
+      session.startTransaction();
 
-    // Step C: Create the default usage record for this user.
-    const usage = await this.createDefaultUsage(newUser._id);
+      // Create User
+      const [newUser] = await UserModel.create(
+        [
+          {
+            clerkId: clerkUser.clerkId,
+            email: clerkUser.email,
+            username: clerkUser.username,
+            imageUrl: clerkUser.imageUrl,
+          },
+        ],
+        { session },
+      );
 
-    // Step D: Link the subscription and usage IDs back to the user document.
-    const updatedUser = await this.updateUserReferences(
-      newUser._id,
-      subscription._id,
-      usage._id,
-    );
+      // Create Subscription
+      const [subscription] = await SubscriptionModel.create(
+        [
+          {
+            userId: newUser._id,
+            plan: "free",
+            status: "active",
+            expiresAt: null,
+          },
+        ],
+        { session },
+      );
 
-    return { user: updatedUser, subscription, usage };
+      // Create Usage
+      const [usage] = await UsageModel.create(
+        [
+          {
+            userId: newUser._id,
+            messagesToday: 0,
+            totalMessages: 0,
+            tokensUsed: 0,
+            lastReset: new Date(),
+          },
+        ],
+        { session },
+      );
+
+      // Link User
+      const updatedUser = await UserModel.findByIdAndUpdate(
+        newUser._id,
+        {
+          subscriptionId: subscription._id,
+          usageId: usage._id,
+        },
+        {
+          session,
+          new: true,
+        },
+      );
+
+      if (!updatedUser) {
+        throw new Error("Failed to update user references.");
+      }
+
+      await session.commitTransaction();
+
+      // ----------------------------
+      // MongoDB is now safe
+      // ----------------------------
+
+      const streamToken = await streamService.syncAndGenerateToken(
+        clerkUser.clerkId,
+        clerkUser.username,
+        clerkUser.imageUrl,
+      );
+
+      return {
+        user: updatedUser,
+        subscription,
+        usage,
+        streamToken,
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
   }
 
   /**
