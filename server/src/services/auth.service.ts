@@ -13,6 +13,7 @@ interface SyncUserResult {
   user: typeof UserModel.prototype;
   subscription: typeof SubscriptionModel.prototype;
   usage: typeof UsageModel.prototype;
+  streamToken: string;
 }
 
 /**
@@ -103,7 +104,13 @@ class AuthService {
       UsageModel.findById(existingUser.usageId),
     ]);
 
-    return { user: existingUser, subscription, usage };
+    const streamToken = await streamService.syncAndGenerateToken(
+        clerkUser.clerkId,
+        clerkUser.username,
+        clerkUser.imageUrl,
+      );
+
+    return { user: existingUser, subscription, usage, streamToken };
   }
 
   /**
